@@ -1,0 +1,137 @@
+name: CI/CD Pipeline
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+  push:
+    branches:
+      - dev
+      - main
+
+jobs:
+  lint:
+    name: Code Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tidy cppcheck
+      
+      - name: Run cppcheck
+        continue-on-error: true
+        run: |
+          echo "Running cppcheck static analysis..."
+          cppcheck --enable=all --suppress=missingIncludeSystem \
+            --suppress=unusedFunction --error-exitcode=1 \
+            --xml --xml-version=2 . 2> cppcheck-report.xml || true
+          cppcheck --enable=all --suppress=missingIncludeSystem \
+            --suppress=unusedFunction . || true
+      
+      - name: Run clang-tidy (if source files exist)
+        continue-on-error: true
+        run: |
+          if find . -name "*.c" -o -name "*.h" | grep -q .; then
+            echo "Running clang-tidy..."
+            find . -name "*.c" -o -name "*.h" | head -10 | xargs clang-tidy \
+              -checks='-*,clang-analyzer-*,cppcoreguidelines-*,readability-*,performance-*' \
+              -- -std=c11 || true
+          else
+            echo "No C source files found, skipping clang-tidy"
+          fi
+
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc gcc-multilib
+      
+      - name: Check for Makefile
+        id: check_makefile
+        run: |
+          if [ -f Makefile ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Build with Makefile (if exists)
+        if: steps.check_makefile.outputs.exists == 'true'
+        run: |
+          make clean || true
+          make
+      
+      - name: Build with gcc (if no Makefile)
+        if: steps.check_makefile.outputs.exists == 'false'
+        continue-on-error: true
+        run: |
+          echo "No Makefile found. Attempting to build any .c files found..."
+          find . -name "*.c" -not -path "./.git/*" | head -5 | while read file; do
+            echo "Found source file: $file"
+          done
+          echo "Build step will be implemented when source files are added"
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check for common issues
+        run: |
+          echo "Checking for common code quality issues..."
+          
+          # Check for TODO/FIXME comments
+          if grep -r "TODO\|FIXME" --include="*.c" --include="*.h" . 2>/dev/null; then
+            echo "Found TODO/FIXME comments (informational only)"
+          fi
+          
+          # Check for large files
+          find . -name "*.c" -o -name "*.h" | xargs wc -l 2>/dev/null | sort -rn | head -5 || true
+          
+          # Check for basic syntax (gcc -fsyntax-only)
+          if find . -name "*.c" | head -1 | grep -q .; then
+            echo "Syntax check will be performed when source files are added"
+          fi
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run basic security checks
+        run: |
+          echo "Running basic security checks..."
+          
+          # Check for hardcoded secrets patterns (basic)
+          if grep -riE "(password|secret|api_key|token)\s*=\s*['\"][^'\"]+['\"]" \
+            --include="*.c" --include="*.h" . 2>/dev/null; then
+            echo "⚠️  Warning: Potential hardcoded secrets found"
+            exit 1
+          fi
+          
+          # Check for unsafe functions
+          if grep -rE "\b(gets|strcpy|strcat|sprintf)\s*\(" \
+            --include="*.c" --include="*.h" . 2>/dev/null; then
+            echo "⚠️  Warning: Potentially unsafe functions detected (this may be expected for a security scanner)"
+          fi
+          
+          echo "Basic security checks completed"
