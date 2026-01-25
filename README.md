@@ -6,7 +6,7 @@ A static security analysis tool for detecting vulnerabilities in C source code.
 
 MemLock is a static analysis tool designed to automatically detect common security vulnerabilities in C source code without executing the program. It helps developers identify potentially dangerous patterns early in the development process.
 
-See [proposal.md](proposal.md) for the project proposal and [project-idea.md](project-idea.md) for detailed project specifications.
+See [project-idea.md](project-idea.md) for detailed project specifications.
 
 ## Getting Started
 
@@ -95,7 +95,6 @@ memlock/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml              # CI/CD pipeline configuration
-├── proposal.md                 # Project proposal
 ├── project-idea.md             # Detailed project specifications
 ├── README.md                   # This file
 └── .gitignore                  # Git ignore rules
