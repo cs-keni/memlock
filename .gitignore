@@ -1,10 +1,38 @@
-# Build artifacts
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Build artifacts (C - for test files)
 *.o
 *.obj
 *.exe
 *.out
 *.a
-*.so
 *.dylib
 *.dll
 *.bin
@@ -15,11 +43,8 @@ scanner
 test_*
 
 # Build directories
-build/
 bin/
 obj/
-dist/
-out/
 
 # Debug files
 *.dSYM/
