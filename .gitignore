@@ -39,7 +39,6 @@ ENV/
 
 # Compiled binaries
 memlock
-test_*
 
 # Build directories
 bin/
