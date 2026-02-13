@@ -115,6 +115,9 @@ mypy scanner/
 
 # Run tests
 pytest tests/
+
+# Run tests for a specific rule only (e.g., buffer_overflow)
+pytest tests/test_buffer_overflow.py -v
 ```
 
 ## Project Structure
