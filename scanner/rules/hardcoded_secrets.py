@@ -214,7 +214,7 @@ class HardcodedSecretsRule(Rule):
         # Check parent contexts: init_declarator or assignment_expression
         parent = getattr(node, "parent", None)
         if parent is not None:
-            # declaration initializer:  char *password = "..."
+            # declaration initializer:  char *ident = "..."  (ident may be password, token, etc)
             if parent.type in {"init_declarator", "initializer"}:
                 name = _first_identifier_text(parent, source)
                 if name and _NAME_HINTS.search(name):
@@ -223,7 +223,7 @@ class HardcodedSecretsRule(Rule):
                         severity="high",
                     )
 
-            # assignment: password = "..."
+            # assignment: ident = "..."  (ident may be password, token, etc)
             if parent.type == "assignment_expression":
                 left = parent.child_by_field_name("left")
                 name = _first_identifier_text(left, source) if left is not None else None
