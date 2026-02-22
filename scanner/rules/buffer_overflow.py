@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from scanner.findings.models import Finding, Location
 from scanner.rules.base import Rule
 
-
 # --- helpers ---------------------------------------------------------------
+
 
 def _node_text(source: bytes, node: Any) -> str:
     return source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
@@ -83,7 +83,7 @@ def _parse_int_literal(node: Any, source: bytes) -> Optional[int]:
         return None
 
 
-_STRING_ESCAPE_RE = re.compile(r'\\(.)')
+_STRING_ESCAPE_RE = re.compile(r"\\(.)")
 
 
 def _unquote_c_string_literal(raw: str) -> Optional[str]:
@@ -126,8 +126,9 @@ def _format_string_has_unbounded_s(fmt: str) -> bool:
 
     # Find %... conversions
     # This is intentionally conservative (false positives > false negatives).
-    conv = re.finditer(r"%(?:[-+ #0]*)?(?:\d+|\*)?(?:\.\d+|\.\*)?(?:hh|h|ll|l|j|z|t|L)?([a-zA-Z\[])",
-                      s)
+    conv = re.finditer(
+        r"%(?:[-+ #0]*)?(?:\d+|\*)?(?:\.\d+|\.\*)?(?:hh|h|ll|l|j|z|t|L)?([a-zA-Z\[])", s
+    )
     for m in conv:
         spec = m.group(0)
         kind = m.group(1)
@@ -157,6 +158,7 @@ def _format_string_has_unbounded_s(fmt: str) -> bool:
 
 # --- rule ------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class _Issue:
     message: str
@@ -169,7 +171,7 @@ class BufferOverflowRule(Rule):
 
     # APIs that are essentially always dangerous
     _BANNED = {
-        "gets",        # removed from C11 for a reason
+        "gets",  # removed from C11 for a reason
         "strcpy",
         "strcat",
         "sprintf",
@@ -186,9 +188,7 @@ class BufferOverflowRule(Rule):
         "vsscanf",
         "memcpy",
         "memmove",
-        "strncpy",
-        "strncat",
-        # You can add: "read", "recv", etc. later
+        # strncpy/strncat are bounded - only flag if clearly wrong (handled in _analyze_call)
     }
 
     def run(self, context: Any, config: Any) -> List[Finding]:
@@ -199,11 +199,23 @@ class BufferOverflowRule(Rule):
         if tree is None or path is None:
             return []
 
+        self._current_path = path  # for OOB helpers
+
         # Build a very small map of local fixed-size arrays:
         #   char buf[16];  => sizes["buf"] = 16
         sizes = self._collect_fixed_array_sizes(tree.root_node, source)
 
         findings: List[Finding] = []
+
+        # Check for out-of-bounds array writes (direct subscript, loop bounds)
+        for node in _walk(tree.root_node):
+            if node.type == "assignment_expression":
+                ob = self._check_direct_oob_write(node, source, sizes)
+                if ob is not None:
+                    findings.append(ob)
+            elif node.type == "for_statement":
+                for ob in self._check_loop_oob(node, source, sizes):
+                    findings.append(ob)
 
         for node in _walk(tree.root_node):
             if node.type != "call_expression":
@@ -301,13 +313,6 @@ class BufferOverflowRule(Rule):
                     severity="medium",
                 )
 
-        # 4) strncpy/strncat: bounded, but can still be tricky (non-termination, off-by-one)
-        if fn_name in {"strncpy", "strncat"}:
-            return _Issue(
-                message=f"Review '{fn_name}': bounded call, but ensure correct size and NUL-termination.",
-                severity="low",
-            )
-
         return None
 
     def _collect_fixed_array_sizes(self, root: Any, source: bytes) -> Dict[str, int]:
@@ -346,6 +351,126 @@ class BufferOverflowRule(Rule):
                         sizes[name] = size_val
 
         return sizes
+
+    def _check_direct_oob_write(
+        self, assign_node: Any, source: bytes, sizes: Dict[str, int]
+    ) -> Optional[Finding]:
+        """
+        Check assignment_expression like arr[4] = 42.
+        Left side must be subscript_expression with constant index.
+        """
+        left = assign_node.child_by_field_name("left")
+        if left is None or left.type != "subscript_expression":
+            return None
+        arr_node = left.child_by_field_name("argument")
+        index_node = left.child_by_field_name("index")
+        if index_node is None or index_node.type != "number_literal":
+            return None
+        arr_name = _identifier_name(arr_node, source)
+        index_val = _parse_int_literal(index_node, source)
+        if arr_name is None or index_val is None or arr_name not in sizes:
+            return None
+        arr_size = sizes[arr_name]
+        if index_val >= arr_size:
+            line, col = _line_col(assign_node)
+            path = getattr(self, "_current_path", None)
+            if path is None:
+                return None
+            return Finding(
+                rule_id=self.id,
+                message=f"Out-of-bounds write: '{arr_name}[{index_val}]' exceeds array size {arr_size}.",
+                location=Location(
+                    path=self._current_path,
+                    line=line,
+                    column=col,
+                    snippet=_node_text(source, assign_node).strip(),
+                ),
+                severity="high",
+            )
+        return None
+
+    def _check_loop_oob(
+        self, for_node: Any, source: bytes, sizes: Dict[str, int]
+    ) -> List[Finding]:
+        """
+        Check for_statement: for (i=0; i<=8; i++) buf[i]='A' with buf[8].
+        Extract loop var, max index from condition, find array writes in body.
+        """
+        findings: List[Finding] = []
+        path = getattr(self, "_current_path", None)
+        if path is None:
+            return findings
+        # for_statement: for ( init ; condition ; update ) body
+        init = for_node.child_by_field_name("initializer")
+        cond = for_node.child_by_field_name("condition")
+        body = for_node.child_by_field_name("body")
+        if init is None and for_node.child_count >= 3:
+            init = for_node.child(2)
+        if cond is None and for_node.child_count >= 5:
+            cond = for_node.child(4)
+        if body is None and for_node.child_count >= 9:
+            body = for_node.child(8)
+        if init is None or cond is None or body is None:
+            return findings
+        # init: i = 0 -> assignment_expression
+        loop_var = None
+        if init.type == "assignment_expression":
+            left = init.child_by_field_name("left")
+            if left and left.type == "identifier":
+                loop_var = _node_text(source, left)
+        if not loop_var:
+            return findings
+        # condition: i <= 8 or i < 9 -> binary_expression
+        max_index: Optional[int] = None
+        if cond.type == "binary_expression":
+            op_node = cond.child_by_field_name("operator")
+            op = _node_text(source, op_node) if op_node else ""
+            right = cond.child_by_field_name("right")
+            if right and right.type == "number_literal":
+                bound = _parse_int_literal(right, source)
+                if bound is not None:
+                    if op in ("<=", "=="):
+                        max_index = bound
+                    elif op == "<":
+                        max_index = bound - 1 if bound > 0 else None
+        if max_index is None:
+            return findings
+        # Walk body for arr[loop_var] = ... or arr[loop_var]
+        for sub in _walk(body):
+            if sub.type != "assignment_expression":
+                continue
+            left = sub.child_by_field_name("left")
+            if left is None or left.type != "subscript_expression":
+                continue
+            arg = left.child_by_field_name("argument") or (
+                left.children[0] if left.children else None
+            )
+            idx = left.child_by_field_name("index") or (
+                left.children[2] if len(left.children) >= 3 else None
+            )
+            if arg is None or idx is None:
+                continue
+            arr_name = _identifier_name(arg, source)
+            if arr_name is None or arr_name not in sizes:
+                continue
+            if idx.type == "identifier" and _node_text(source, idx) == loop_var:
+                if max_index >= sizes[arr_name]:
+                    line, col = _line_col(sub)
+                    findings.append(
+                        Finding(
+                            rule_id=self.id,
+                            message=f"Out-of-bounds loop: index '{loop_var}' reaches {max_index}, but '{arr_name}' has size {sizes[arr_name]}.",
+                            location=Location(
+                                path=path,
+                                line=line,
+                                column=col,
+                                snippet=_node_text(source, sub).strip(),
+                            ),
+                            severity="high",
+                        )
+                    )
+                    break
+        return findings
 
 
 def _identifier_name(node: Any, source: bytes) -> Optional[str]:

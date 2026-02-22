@@ -53,7 +53,7 @@ def test_strcpy_detected():
 
 def test_sprintf_detected():
     """sprintf() is reported as unsafe."""
-    source = b"int main(void) { char buf[32]; sprintf(buf, \"%d\", 42); return 0; }"
+    source = b'int main(void) { char buf[32]; sprintf(buf, "%d", 42); return 0; }'
     findings = _run_rule(source)
     assert len(findings) == 1
     assert "sprintf" in findings[0].message
@@ -89,6 +89,13 @@ int main(void) {
     return 0;
 }
 """
+    findings = _run_rule(source)
+    assert len(findings) == 0
+
+
+def test_scanf_with_width_not_flagged():
+    """scanf with bounded format (e.g. %15s) is not flagged."""
+    source = b'int main(void) { char name[16]; scanf("%15s", name); return 0; }'
     findings = _run_rule(source)
     assert len(findings) == 0
 

@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from scanner.findings.models import Finding, Location
 from scanner.rules.base import Rule
 
-
 # --- helpers ---------------------------------------------------------------
+
 
 def _node_text(source: bytes, node: Any) -> str:
     return source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
@@ -50,7 +50,7 @@ def _get_call_args(call_node: Any) -> List[Any]:
     return [c for c in args.children if getattr(c, "is_named", False)]
 
 
-_STRING_ESCAPE_RE = re.compile(r'\\(.)')
+_STRING_ESCAPE_RE = re.compile(r"\\(.)")
 
 
 def _unquote_c_string_literal(raw: str) -> Optional[str]:
@@ -87,18 +87,18 @@ def _looks_nonliteral_format(fmt_node: Any) -> bool:
 # - skips %%
 # - captures conversion specifier at end (s, d, x, n, etc.)
 _PRINTF_CONV_RE = re.compile(
-    r"%(?:[-+ #0]*)"          # flags
-    r"(?:\d+|\*)?"            # width
-    r"(?:\.(?:\d+|\*))?"      # precision
-    r"(?:hh|h|ll|l|j|z|t|L)?" # length
+    r"%(?:[-+ #0]*)"  # flags
+    r"(?:\d+|\*)?"  # width
+    r"(?:\.(?:\d+|\*))?"  # precision
+    r"(?:hh|h|ll|l|j|z|t|L)?"  # length
     r"([diuoxXfFeEgGaAcspn%])"
 )
 
 # Regex for scanf-style conversions (very rough)
 _SCANF_CONV_RE = re.compile(
-    r"%(?:\*?)"               # assignment suppression
-    r"(?:\d+)?"               # width (digits only)
-    r"(?:hh|h|ll|l|j|z|t|L)?" # length
+    r"%(?:\*?)"  # assignment suppression
+    r"(?:\d+)?"  # width (digits only)
+    r"(?:hh|h|ll|l|j|z|t|L)?"  # length
     r"(\[[^\]]+\]|[diuoxXfFeEgGaAcspn%])"
 )
 
@@ -142,6 +142,7 @@ class _Issue:
 
 
 # --- rule ------------------------------------------------------------------
+
 
 class FormatStringRule(Rule):
     id = "format-string"
@@ -243,7 +244,9 @@ class FormatStringRule(Rule):
             # scanf(fmt, ...)
             # fscanf(stream, fmt, ...)
             # sscanf(str, fmt, ...)
-            fmt_index = 0 if fn in {"scanf", "vscanf"} else 1 if len(args) >= 2 else None
+            fmt_index = (
+                0 if fn in {"scanf", "vscanf"} else 1 if len(args) >= 2 else None
+            )
 
         else:
             return None
@@ -253,7 +256,11 @@ class FormatStringRule(Rule):
 
         fmt_node = args[fmt_index]
         fmt_raw = _node_text(source, fmt_node)
-        fmt_lit = _unquote_c_string_literal(fmt_raw) if _is_string_literal_node(fmt_node) else None
+        fmt_lit = (
+            _unquote_c_string_literal(fmt_raw)
+            if _is_string_literal_node(fmt_node)
+            else None
+        )
 
         # 1) Non-literal format string → classic format-string vulnerability
         # Examples: printf(user); syslog(msg); fprintf(fp, buf);

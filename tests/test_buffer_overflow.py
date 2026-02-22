@@ -1,6 +1,5 @@
 """Unit tests for the buffer_overflow rule."""
 
-import pytest
 from pathlib import Path
 
 from scanner.context import FileContext, create_context
@@ -36,7 +35,6 @@ int main(void) {
     assert len(findings) == 0
 
 
-@pytest.mark.xfail(reason="Rule not yet implemented - remove when buffer_overflow is done")
 def test_out_of_bounds_loop_detected():
     """Loop that writes past array end (i <= 8 for buf[8]) should be flagged."""
     source = b"""
@@ -54,7 +52,6 @@ void foo(void) {
     assert findings[0].location.snippet is not None
 
 
-@pytest.mark.xfail(reason="Rule not yet implemented - remove when buffer_overflow is done")
 def test_direct_out_of_bounds_write():
     """Direct subscript beyond array size should be flagged."""
     source = b"""
@@ -72,7 +69,9 @@ int main(void) {
 def test_finding_has_location(tmp_path):
     """Findings have path, line, column, and snippet."""
     c_file = tmp_path / "overflow.c"
-    c_file.write_bytes(b"int main(void) { char buf[4]; int i; for (i = 0; i <= 4; i++) buf[i] = 0; return 0; }\n")
+    c_file.write_bytes(
+        b"int main(void) { char buf[4]; int i; for (i = 0; i <= 4; i++) buf[i] = 0; return 0; }\n"
+    )
     ctx = create_context(c_file)
     assert ctx is not None
     rule = BufferOverflowRule()
