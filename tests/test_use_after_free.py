@@ -123,3 +123,37 @@ int main(void) {
     findings = _run_rule(source)
     # Heuristic: we extract identifier from *pp -> "pp". Later **pp uses "pp". So we may report.
     assert len(findings) >= 0  # implementation may or may not catch this depending on AST
+
+
+def test_p_null_after_free_not_flagged():
+    """The safe idiom 'p = NULL' after free() should not be flagged."""
+    source = b"""
+int main(void) {
+    int *p = malloc(sizeof(int));
+    if (!p) return 1;
+    *p = 42;
+    free(p);
+    p = NULL;
+    return 0;
+}
+"""
+    findings = _run_rule(source)
+    assert len(findings) == 0
+
+
+def test_scope_separation():
+    """Different functions with same variable name: free(p) in one should not affect the other."""
+    source = b"""
+void first(void) {
+    int *p = malloc(sizeof(int));
+    free(p);
+}
+
+void second(void) {
+    int *p = malloc(sizeof(int));
+    *p = 10;
+    free(p);
+}
+"""
+    findings = _run_rule(source)
+    assert len(findings) == 0

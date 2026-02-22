@@ -40,7 +40,7 @@ def print_findings(findings: Sequence[Finding]) -> None:
     if not findings:
         console.print(
             Panel(
-                "[green]✓ No issues found.[/green]",
+                "[green]No issues found.[/green]",
                 title="MemLock Analysis",
                 border_style="green",
                 box=box.ROUNDED,
