@@ -2,17 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any
+import re
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
-from scanner.findings.models import Finding
+from scanner.findings.models import Finding, Location
 from scanner.rules.base import Rule
 
 
-class FormatStringRule(Rule):
-    """
-    Detects format string vulnerabilities: printf(user_input) where format is not a literal.
-    TODO: Implement - see project-idea.md for AST targets and strategy.
-    """
 # --- helpers ---------------------------------------------------------------
 
 def _node_text(source: bytes, node: Any) -> str:
@@ -180,15 +177,15 @@ class FormatStringRule(Rule):
         "vsscanf",
     }
 
-    def run(self, context: Any, config: Any) -> List[Dict[str, Any]]:
+    def run(self, context: Any, config: Any) -> List[Finding]:
         tree = getattr(context, "tree", None)
         source: bytes = getattr(context, "source", b"")
-        path = getattr(context, "path", "<unknown>")
+        path = getattr(context, "path", None)
 
-        if tree is None:
+        if tree is None or path is None:
             return []
 
-        findings: List[Dict[str, Any]] = []
+        findings: List[Finding] = []
 
         for node in _walk(tree.root_node):
             if node.type != "call_expression":
@@ -205,16 +202,17 @@ class FormatStringRule(Rule):
 
             line, col = _line_col(node)
             findings.append(
-                {
-                    "rule_id": self.id,
-                    "rule_name": self.name,
-                    "severity": issue.severity,
-                    "message": issue.message,
-                    "path": str(path),
-                    "line": line,
-                    "column": col,
-                    "snippet": _node_text(source, node).strip(),
-                }
+                Finding(
+                    rule_id=self.id,
+                    message=issue.message,
+                    location=Location(
+                        path=path,
+                        line=line,
+                        column=col,
+                        snippet=_node_text(source, node).strip(),
+                    ),
+                    severity=issue.severity,
+                )
             )
 
         return findings

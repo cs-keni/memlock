@@ -13,6 +13,9 @@ from dataclasses import dataclass, field
 from typing import List, Sequence
 
 from scanner.rules.base import Rule
+from scanner.rules.buffer_overflow import BufferOverflowRule
+from scanner.rules.format_string import FormatStringRule
+from scanner.rules.hardcoded_secrets import HardcodedSecretsRule
 from scanner.rules.unsafe_functions import UnsafeFunctionsRule
 from scanner.rules.use_after_free import UseAfterFreeRule
 
@@ -39,6 +42,9 @@ def get_default_config() -> Config:
     rules: List[Rule] = [
         UnsafeFunctionsRule(),
         UseAfterFreeRule(),
+        BufferOverflowRule(),
+        FormatStringRule(),
+        HardcodedSecretsRule(),
     ]
     return Config(rules=rules)
 

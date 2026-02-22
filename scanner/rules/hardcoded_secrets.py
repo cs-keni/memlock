@@ -2,22 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any
+import math
+import re
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
-from scanner.findings.models import Finding
+from scanner.findings.models import Finding, Location
 from scanner.rules.base import Rule
 
 
-class HardcodedSecretsRule(Rule):
-    """
-    Detects hardcoded secrets: passwords, API keys, tokens in string literals.
-    TODO: Implement - see project-idea.md for AST targets and strategy.
-    """
-
-    id = "hardcoded-secrets"
-    name = "Hardcoded secrets"
-
-    # --- helpers ---------------------------------------------------------------
+# --- helpers ---------------------------------------------------------------
 
 def _node_text(source: bytes, node: Any) -> str:
     return source[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
@@ -131,15 +125,15 @@ class HardcodedSecretsRule(Rule):
     id = "hardcoded-secrets"
     name = "Hardcoded secrets"
 
-    def run(self, context: Any, config: Any) -> List[Dict[str, Any]]:
+    def run(self, context: Any, config: Any) -> List[Finding]:
         tree = getattr(context, "tree", None)
         source: bytes = getattr(context, "source", b"")
-        path = getattr(context, "path", "<unknown>")
+        path = getattr(context, "path", None)
 
-        if tree is None:
+        if tree is None or path is None:
             return []
 
-        findings: List[Dict[str, Any]] = []
+        findings: List[Finding] = []
 
         # Collect all string_literal nodes and evaluate in context
         for node in _walk(tree.root_node):
@@ -157,16 +151,17 @@ class HardcodedSecretsRule(Rule):
 
             line, col = _line_col(node)
             findings.append(
-                {
-                    "rule_id": self.id,
-                    "rule_name": self.name,
-                    "severity": issue.severity,
-                    "message": issue.message,
-                    "path": str(path),
-                    "line": line,
-                    "column": col,
-                    "snippet": raw.strip(),
-                }
+                Finding(
+                    rule_id=self.id,
+                    message=issue.message,
+                    location=Location(
+                        path=path,
+                        line=line,
+                        column=col,
+                        snippet=raw.strip(),
+                    ),
+                    severity=issue.severity,
+                )
             )
 
         return findings

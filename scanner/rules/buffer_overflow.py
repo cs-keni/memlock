@@ -2,25 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from scanner.findings.models import Finding
-from scanner.rules.base import Rule
-
-
-class BufferOverflowRule(Rule):
-    """
-    Detects buffer overflow risks: out-of-bounds writes, loops exceeding array size.
-    TODO: Implement - see project-idea.md for AST targets and strategy.
-    """
-    # Buffer overflow risk detection: detects array bounds violations and unsafe buffer operations
-from __future__ import annotations
-
 import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from .base import Rule
+from scanner.findings.models import Finding, Location
+from scanner.rules.base import Rule
 
 
 # --- helpers ---------------------------------------------------------------
@@ -204,19 +191,19 @@ class BufferOverflowRule(Rule):
         # You can add: "read", "recv", etc. later
     }
 
-    def run(self, context: Any, config: Any) -> List[Dict[str, Any]]:
+    def run(self, context: Any, config: Any) -> List[Finding]:
         tree = getattr(context, "tree", None)
         source: bytes = getattr(context, "source", b"")
-        path = getattr(context, "path", "<unknown>")
+        path = getattr(context, "path", None)
 
-        if tree is None:
+        if tree is None or path is None:
             return []
 
         # Build a very small map of local fixed-size arrays:
         #   char buf[16];  => sizes["buf"] = 16
         sizes = self._collect_fixed_array_sizes(tree.root_node, source)
 
-        findings: List[Dict[str, Any]] = []
+        findings: List[Finding] = []
 
         for node in _walk(tree.root_node):
             if node.type != "call_expression":
@@ -236,16 +223,17 @@ class BufferOverflowRule(Rule):
             snippet = _node_text(source, node)
 
             findings.append(
-                {
-                    "rule_id": self.id,
-                    "rule_name": self.name,
-                    "severity": issue.severity,
-                    "message": issue.message,
-                    "path": str(path),
-                    "line": line,
-                    "column": col,
-                    "snippet": snippet.strip(),
-                }
+                Finding(
+                    rule_id=self.id,
+                    message=issue.message,
+                    location=Location(
+                        path=path,
+                        line=line,
+                        column=col,
+                        snippet=snippet.strip(),
+                    ),
+                    severity=issue.severity,
+                )
             )
 
         return findings
@@ -378,11 +366,3 @@ def _identifier_name(node: Any, source: bytes) -> Optional[str]:
             return _node_text(source, sub)
 
     return None
-
-
-    id = "buffer-overflow"
-    name = "Buffer overflow risk"
-
-    def run(self, context: Any, config: Any) -> list[Finding]:
-        # Stub: implement to flag array bounds violations, out-of-bounds writes.
-        return []
