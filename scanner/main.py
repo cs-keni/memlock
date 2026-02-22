@@ -82,6 +82,12 @@ def analyze(
         "-f",
         help="Output format: 'simple' (grep-like) or 'rich' (pretty tables).",
     ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Show remediation hints (how to fix each issue).",
+    ),
 ) -> None:
     """
     Analyze a single C file or all .c files under a directory.
@@ -92,6 +98,7 @@ def analyze(
     files = _collect_c_files(target)
 
     all_findings: List[Finding] = []
+    analyzed_files: List[Path] = []
     rules = list(get_enabled_rules(config))
 
     if not rules:
@@ -103,6 +110,7 @@ def analyze(
         if ctx is None:
             # File could not be read; error already logged in create_context
             continue
+        analyzed_files.append(path)
         for rule in rules:
             try:
                 rule_findings = rule.run(ctx, config)
@@ -113,7 +121,7 @@ def analyze(
             all_findings.extend(rule_findings)  # type: ignore[arg-type]
 
     if format == "rich":
-        print_findings_rich(all_findings)
+        print_findings_rich(all_findings, analyzed_files=analyzed_files, verbose=verbose)
     else:
         _print_findings(all_findings)
 
