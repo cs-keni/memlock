@@ -39,7 +39,6 @@ ENV/
 
 # Compiled binaries
 memlock
-test_*
 
 # Build directories
 bin/
@@ -122,3 +121,5 @@ LPT9
 # Local project files (not for GitHub)
 proposal.md
 kenny.md
+midterm-report.txt
+RUNDOWN.md

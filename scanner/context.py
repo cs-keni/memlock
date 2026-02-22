@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from scanner.parser import create_parser, parse_bytes, parse_file
+from scanner.parser import create_parser, parse_bytes
 from tree_sitter import Parser, Tree
 from tree_sitter import Node as TSNode
 
