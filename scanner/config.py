@@ -10,7 +10,7 @@ the single place to update.
 """
 
 from dataclasses import dataclass, field
-from typing import Iterable, List, Sequence
+from typing import List, Sequence
 
 from scanner.rules.base import Rule
 from scanner.rules.unsafe_functions import UnsafeFunctionsRule

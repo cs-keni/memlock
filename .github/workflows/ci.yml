@@ -167,9 +167,9 @@ jobs:
         run: |
           echo "Running basic security checks..."
           
-          # Check for hardcoded secrets patterns in Python code
+          # Check for hardcoded secrets patterns in Python code (exclude tests - they contain intentional examples)
           if grep -riE "(password|secret|api_key|token)\s*=\s*['\"][^'\"]+['\"]" \
-            --include="*.py" . 2>/dev/null | grep -v "test" | grep -v "# Example"; then
+            --include="*.py" --exclude-dir=tests --exclude-dir=.git . 2>/dev/null | grep -v "# Example"; then
             echo "Warning: Potential hardcoded secrets found in Python code"
             exit 1
           fi

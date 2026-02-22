@@ -1,6 +1,5 @@
 """Tests for scanner.context: FileContext, create_context, load_contexts, node/function counts."""
 
-import pytest
 from pathlib import Path
 
 from scanner.context import (

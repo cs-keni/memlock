@@ -1,6 +1,5 @@
 """Unit tests for the use_after_free rule."""
 
-import pytest
 from pathlib import Path
 
 from scanner.context import FileContext, create_context

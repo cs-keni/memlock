@@ -1,6 +1,5 @@
 """Unit tests for the unsafe_functions rule."""
 
-import pytest
 from pathlib import Path
 
 from scanner.context import FileContext, create_context
