@@ -16,13 +16,14 @@ module can be extended without changing rule implementations.
 
 import logging
 from pathlib import Path
-from typing import List, Sequence
+from typing import Literal, List, Sequence
 
 import typer
 
 from scanner.config import Config, get_default_config, get_enabled_rules
 from scanner.context import create_context
 from scanner.findings.models import Finding
+from scanner.reporting.console import print_findings as print_findings_rich
 from scanner.traversal import find_c_files
 
 logger = logging.getLogger(__name__)
@@ -75,6 +76,12 @@ def analyze(
         resolve_path=True,
         help="C file or directory to analyze.",
     ),
+    format: Literal["simple", "rich"] = typer.Option(
+        "rich",
+        "--format",
+        "-f",
+        help="Output format: 'simple' (grep-like) or 'rich' (pretty tables).",
+    ),
 ) -> None:
     """
     Analyze a single C file or all .c files under a directory.
@@ -105,7 +112,10 @@ def analyze(
             # Rule.run() returns list[Any], but in practice these are Finding
             all_findings.extend(rule_findings)  # type: ignore[arg-type]
 
-    _print_findings(all_findings)
+    if format == "rich":
+        print_findings_rich(all_findings)
+    else:
+        _print_findings(all_findings)
 
 
 def main() -> None:
@@ -115,9 +125,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-# Typer CLI entry point and main orchestration of the analysis pipeline.
-
-def placeholder() -> None:
-    """Placeholder function to keep module tracked."""
-    return None
