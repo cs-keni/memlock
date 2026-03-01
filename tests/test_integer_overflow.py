@@ -32,7 +32,7 @@ int main(void) {
     assert len(findings) == 0
 
 
-@pytest.mark.xfail(reason="Rule not yet implemented - remove when integer_overflow is done")
+#@pytest.mark.xfail(reason="Rule not yet implemented - remove when integer_overflow is done")
 def test_malloc_arithmetic_detected():
     """malloc(n * m) with potential overflow should be flagged."""
     source = b"""
@@ -46,7 +46,7 @@ void foo(size_t n, size_t m) {
     assert findings[0].rule_id == "integer-overflow"
 
 
-@pytest.mark.xfail(reason="Rule not yet implemented - remove when integer_overflow is done")
+#@pytest.mark.xfail(reason="Rule not yet implemented - remove when integer_overflow is done")
 def test_large_multiply_in_allocation():
     """n * m with large values (e.g. 1u << 30) is suspicious."""
     source = b"""
