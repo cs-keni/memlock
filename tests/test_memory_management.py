@@ -33,7 +33,7 @@ int main(void) {
     assert len(findings) == 0
 
 
-@pytest.mark.xfail(reason="Rule not yet implemented - remove when memory_management is done")
+#@pytest.mark.xfail(reason="Rule not yet implemented - remove when memory_management is done")
 def test_memory_leak_detected():
     """malloc without free should be flagged as leak."""
     source = b"""
@@ -49,7 +49,7 @@ void foo(void) {
     assert "leak" in findings[0].message.lower() or "free" in findings[0].message.lower()
 
 
-@pytest.mark.xfail(reason="Rule not yet implemented - remove when memory_management is done")
+#@pytest.mark.xfail(reason="Rule not yet implemented - remove when memory_management is done")
 def test_double_free_detected():
     """free(p) called twice should be flagged."""
     source = b"""
