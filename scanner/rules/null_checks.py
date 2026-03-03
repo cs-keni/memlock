@@ -25,10 +25,63 @@ from scanner.findings.models import Finding, Location
 from scanner.rules.base import Rule
 
 
+MALLOC_LIKE = frozenset({"malloc", "calloc", "realloc"})
+
+
 def _walk(node: TSNode):
     yield node
     for child in node.children:
         yield from _walk(child)
+
+
+def _get_called_function_name(context: FileContext, node: TSNode) -> str | None:
+    """Return function name for a call_expression, or None."""
+    if node.type != "call_expression" or node.child_count == 0:
+        return None
+    fn = node.child(0)
+    if fn is None or fn.type != "identifier":
+        return None
+    return get_source_span(context, fn).strip()
+
+
+def _unwrap_value(node: TSNode) -> TSNode:
+    """Unwrap cast/paren to get inner expression."""
+    while node.type in ("cast_expression", "parenthesized_expression") and node.child_count >= 2:
+        node = node.child(node.child_count - 1)  # value is typically last child
+    return node
+
+
+def _collect_malloc_pointers(context: FileContext, root: TSNode) -> set[str]:
+    """Return set of variable names assigned from malloc/calloc/realloc."""
+    result: set[str] = set()
+    for node in _walk(root):
+        if node.type == "assignment_expression":
+            left = node.child_by_field_name("left")
+            right = node.child_by_field_name("right")
+            if left is None or right is None:
+                continue
+            right = _unwrap_value(right)
+            if right.type != "call_expression":
+                continue
+            if _get_called_function_name(context, right) not in MALLOC_LIKE:
+                continue
+            name = _extract_identifier_name(context, left)
+            if name:
+                result.add(name)
+        elif node.type == "init_declarator":
+            decl = node.child_by_field_name("declarator")
+            value = node.child_by_field_name("value") or node.child_by_field_name("initializer")
+            if decl is None or value is None:
+                continue
+            value = _unwrap_value(value)
+            if value.type != "call_expression":
+                continue
+            if _get_called_function_name(context, value) not in MALLOC_LIKE:
+                continue
+            name = _extract_identifier_name(context, decl)
+            if name:
+                result.add(name)
+    return result
 
 
 def _extract_identifier_name(context: FileContext, node: TSNode) -> str | None:
@@ -129,8 +182,11 @@ def _consequence_returns_or_exits(context: FileContext, if_node: TSNode) -> bool
     consequence = if_node.child_by_field_name("consequence")
     if consequence is None:
         return False
+    # Tree-sitter C uses "return_statement" for return nodes
+    if consequence.type == "return_statement":
+        return True
     for child in consequence.children:
-        if child.type == "return":
+        if child.type == "return_statement":
             return True
     return False
 
@@ -194,9 +250,16 @@ class NullChecksRule(Rule):
         file_ctx: FileContext = context  # for type checkers / clarity
         root = file_ctx.root_node
 
+        malloc_pointers = _collect_malloc_pointers(file_ctx, root)
+
         for node in _walk(root):
             is_deref, ptr_name = _is_dereference_of_pointer(file_ctx, node)
             if not is_deref or not ptr_name:
+                continue
+
+            # Only flag dereferences of pointers from malloc/calloc/realloc
+            # (stack arrays like char buf[8] are never NULL)
+            if ptr_name not in malloc_pointers:
                 continue
 
             if _is_protected_by_null_check(file_ctx, node, ptr_name):
