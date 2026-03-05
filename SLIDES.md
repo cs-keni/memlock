@@ -224,7 +224,7 @@
 
 **Slide content**
 - **CLI command**
-  - `python -m scanner.main analyze ./project --format rich --verbose`
+  - `python -m scanner.main ./project --format rich --verbose`
 - **Rich output**
   - Grouped by file
   - Color-coded severities
@@ -248,7 +248,7 @@
 
 **Slide content**
 - **Main command**
-  - `python -m scanner.main analyze <target>`
+  - `python -m scanner.main <target>`
   - **&lt;target&gt;** (required): path to a single `.c` file or a directory; MemLock finds all `.c` files under that directory recursively.
 - **Options / flags**
   - **`--format`**, **`-f`** — Output style. Values: **`rich`** (default) or **`simple`**.
@@ -256,9 +256,9 @@
     - `simple`: one line per finding, `file:line:col: SEVERITY [rule] message`.
   - **`--verbose`**, **`-v`** — Show remediation hints (how to fix) for each rule that has them (e.g., unsafe-functions, use-after-free).
 - **Example commands**
-  - `python -m scanner.main analyze src/` — Scan all `.c` files under `src/` with rich output.
-  - `python -m scanner.main analyze main.c -f simple` — Scan one file, grep-friendly output.
-  - `python -m scanner.main analyze tests/vulnerable --verbose` — Scan vulnerable tests with fix hints.
+  - `python -m scanner.main src/` — Scan all `.c` files under `src/` with rich output.
+  - `python -m scanner.main main.c -f simple` — Scan one file, grep-friendly output.
+  - `python -m scanner.main tests/vulnerable --verbose` — Scan vulnerable tests with fix hints.
 
 **Speaker notes**
 - Use this slide as the **quick reference** when someone asks “how do I run it?” or “what does `-f` do?”
@@ -280,8 +280,8 @@
 
 **Speaker notes**
 - Plan to actually run:
-  - `python -m scanner.main analyze ./tests/vulnerable --format rich --verbose`
-  - Then `python -m scanner.main analyze ./tests/safe --format rich`
+  - `python -m scanner.main ./tests/vulnerable --format rich --verbose`
+  - Then `python -m scanner.main ./tests/safe --format rich`
 - As you present the demo, narrate:
   - What vulnerability is in the vulnerable file (e.g., `gets`, unbounded loop index).
   - How the safe version solves it (e.g., using `fgets`, fixing loop bounds, adding `free`, adding NULL checks).
@@ -315,7 +315,7 @@
   - A mix of simple examples and more “enterprise-style” patterns with macros and wrappers.
  - To obtain actual numbers for the charts:
    - Install dependencies with `pip install -r requirements.txt`
-   - Run `python -m scanner.main analyze tests/vulnerable --format simple` and `tests/safe`
+   - Run `python -m scanner.main tests/vulnerable --format simple` and `python -m scanner.main tests/safe --format simple`
    - Count, for each file, whether there is at least one finding and which rules fired
  - Discuss what went well:
    - For straightforward patterns (`gets`, obvious buffer overflows, simple leaks), detection is reliable.
