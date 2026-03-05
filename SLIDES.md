@@ -244,7 +244,30 @@
 
 ---
 
-## Slide 12 – Demo Plan (Live or Recorded)
+## Slide 12 – Commands & Flags Reference
+
+**Slide content**
+- **Main command**
+  - `python -m scanner.main analyze <target>`
+  - **&lt;target&gt;** (required): path to a single `.c` file or a directory; MemLock finds all `.c` files under that directory recursively.
+- **Options / flags**
+  - **`--format`**, **`-f`** — Output style. Values: **`rich`** (default) or **`simple`**.
+    - `rich`: grouped by file, tables, colors, snippets, summary.
+    - `simple`: one line per finding, `file:line:col: SEVERITY [rule] message`.
+  - **`--verbose`**, **`-v`** — Show remediation hints (how to fix) for each rule that has them (e.g., unsafe-functions, use-after-free).
+- **Example commands**
+  - `python -m scanner.main analyze src/` — Scan all `.c` files under `src/` with rich output.
+  - `python -m scanner.main analyze main.c -f simple` — Scan one file, grep-friendly output.
+  - `python -m scanner.main analyze tests/vulnerable --verbose` — Scan vulnerable tests with fix hints.
+
+**Speaker notes**
+- Use this slide as the **quick reference** when someone asks “how do I run it?” or “what does `-f` do?”
+- Emphasize that **target** can be a file or folder; for folders, the tool automatically discovers `.c` files and skips common non-source dirs (e.g. `build/`, `tests/` in traversal’s ignore list).
+- Point out that **`--verbose`** is especially useful for demos and for developers who want actionable fix suggestions.
+
+---
+
+## Slide 13 – Demo Plan (Live or Recorded)
 
 **Slide content**
 - **Scenario 1: Vulnerable code**
@@ -268,31 +291,40 @@
 
 ---
 
-## Slide 13 – Evaluation: How Well Does It Work?
+## Slide 14 – Evaluation: How Well Does It Work?
 
 **Slide content**
-- Evaluation methodology:
-  - Use curated **safe vs. vulnerable** test pairs
-  - Measure:
-    - True positives (vulnerable flagged)
-    - False negatives (vulnerable missed)
-    - False positives (safe flagged)
-- Observations:
-  - High detection for straightforward patterns
-  - Some false positives for very defensive or macro-heavy code (expected for heuristics)
+- **Evaluation methodology**
+  - Use curated **safe vs. vulnerable** test pairs under `tests/`
+  - Measure per file:
+    - True positives (vulnerable flagged at least once)
+    - False negatives (vulnerable with zero findings)
+    - False positives (safe files with any findings)
+- **Charts to show**
+  - Bar chart: **safe vs. vulnerable files** (TP / FP / FN counts)
+  - Bar chart: **findings per rule** (e.g., buffer-overflow vs memory-management vs format-string)
+  - Pie chart: **severity distribution** (high / medium / low) over all findings
+- **Key observation bullets (fill in with your numbers)**
+  - High detection rate on easy and medium vulnerable cases
+  - Low or zero findings on safe counterparts for most rules
+  - A few expected false positives on macro-heavy or enterprise-style patterns
 
 **Speaker notes**
 - Explain that you evaluated the tool on:
   - The custom test suite under `tests/` (easy/medium/hard, safe/vulnerable).
   - A mix of simple examples and more “enterprise-style” patterns with macros and wrappers.
-- Discuss what went well:
-  - For easy patterns (straightforward `gets`, obvious buffer overflows, simple leaks), detection is very reliable.
-  - For complex flows, the tool sometimes misses subtle bugs, which you document as limitations.
-- Stress that the goal for the class project is **usefulness + explainability**, not industrial-grade precision.
+ - To obtain actual numbers for the charts:
+   - Install dependencies with `pip install -r requirements.txt`
+   - Run `python -m scanner.main analyze tests/vulnerable --format simple` and `tests/safe`
+   - Count, for each file, whether there is at least one finding and which rules fired
+ - Discuss what went well:
+   - For straightforward patterns (`gets`, obvious buffer overflows, simple leaks), detection is reliable.
+   - Complex flows may produce either a miss or an extra warning, which you call out as heuristic limitations.
+ - Stress that the goal for the project is **usefulness + explainability**, not industrial-grade precision.
 
 ---
 
-## Slide 14 – Limitations & Threat Model
+## Slide 15 – Limitations & Threat Model
 
 **Slide content**
 - **Static-only**: no execution, no runtime data
@@ -315,26 +347,28 @@
 
 ---
 
-## Slide 15 – Future Enhancements
+## Slide 16 – Visual Diagrams (Architecture & Flow)
 
 **Slide content**
-- From `FUTURE-ENHANCEMENTS.md`:
-  - **JSON / SARIF output** for CI and code-scanning platforms
-  - **Severity filters** (`--severity-min`) and rule toggles (`--only`, `--skip`)
-  - **Config file** and ignore patterns (`.memlock.yaml`, `.memlockignore`)
-  - **Parallel scanning** and progress bars for large codebases
-  - **Baseline support** to track only *new* findings
+- **Architecture diagram (Mermaid-style flowchart)**
+  - Nodes: CLI → Traversal → Parser → FileContext → Rules → Findings → Reporting
+  - Show one or two example `.c` files flowing through to findings
+- **Example Mermaid code (for generating the diagram)**
+  - Use a diagram like:
+    - `flowchart LR`
+    - `CLI --> Traversal --> Parser --> FileContext --> Rules --> Reporting`
+- Optional: a second diagram showing **rules vs vulnerability types** (one node per rule pointing to CWE categories)
 
 **Speaker notes**
-- Highlight that the repo already documents a realistic roadmap:
-  - Machine-readable outputs (JSON, SARIF) would let MemLock plug into GitHub code scanning or other security dashboards.
-  - Config files and ignore patterns would make it more usable on large, messy real-world projects.
-  - Parallelization and progress indicators matter as soon as you scan hundreds of files.
-- This shows that the project isn’t just an academic exercise; it’s structured so that future contributors could evolve it into a more complete tool.
+- On this slide, show a **high-level architecture diagram** generated with Mermaid (or an equivalent tool):
+  - Demonstrate how a directory of C files is discovered, parsed into ASTs, passed through the rule engine, and then rendered by the reporting layer.
+  - Emphasize the separation between the **core pipeline** and the **individual rules**, which makes the design extensible.
+- If you include a second diagram, show rules on the left (unsafe-functions, buffer-overflow, memory-management, etc.) and map them to vulnerability families/CWEs on the right to reinforce coverage.
+- Mention that these diagrams help non-expert viewers quickly understand how MemLock processes code and where rules plug in.
 
 ---
 
-## Slide 16 – Lessons Learned
+## Slide 17 – Lessons Learned
 
 **Slide content**
 - Technical lessons
@@ -356,7 +390,7 @@
 
 ---
 
-## Slide 17 – Why MemLock Matters
+## Slide 18 – Why MemLock Matters
 
 **Slide content**
 - Helps developers:
@@ -376,7 +410,7 @@
 
 ---
 
-## Slide 18 – Conclusion & Q&A
+## Slide 19 – Conclusion & Q&A
 
 **Slide content**
 - **Recap**
