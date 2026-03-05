@@ -34,7 +34,7 @@ int main(void) {
     assert len(findings) == 0
 
 
-@pytest.mark.xfail(reason="Rule not yet implemented - remove when null_checks is done")
+#@pytest.mark.xfail(reason="Rule not yet implemented - remove when null_checks is done")
 def test_dereference_without_null_check_detected():
     """Dereference of malloc result without NULL check should be flagged."""
     source = b"""
@@ -50,7 +50,7 @@ void foo(void) {
     assert "null" in findings[0].message.lower() or "check" in findings[0].message.lower()
 
 
-@pytest.mark.xfail(reason="Rule not yet implemented - remove when null_checks is done")
+#@pytest.mark.xfail(reason="Rule not yet implemented - remove when null_checks is done")
 def test_subscript_without_null_check():
     """p[0] without NULL check after malloc should be flagged."""
     source = b"""
