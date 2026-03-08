@@ -46,14 +46,17 @@
 ## Slide 4 – What We Detect (8 Rules)
 
 **Slide content**
-- `unsafe-functions` – banned calls (gets, strcpy, sprintf, etc.)
-- `buffer-overflow` – out-of-bounds writes, risky memcpy
-- `memory-management` – leaks, double-free
-- `use-after-free` – dereference after free
-- `hardcoded-secrets` – passwords/tokens in strings
-- `integer-overflow` – risky arithmetic
-- `null-checks` – missing NULL guards on heap pointers
-- `format-string` – dangerous printf/scanf usage
+
+| Rule | What it looks for | How it finds it | Why it is needed |
+|------|-------------------|-----------------|------------------|
+| **unsafe-functions** | Banned C library calls (gets, strcpy, strcat, sprintf, unbounded scanf/sscanf) | Walks AST for `call_expression` nodes; extracts function name; checks against banned set; for scanf, inspects format literal for unbounded %s/%[...] | These functions have no bounds checking → buffer overflows (CWE-119) |
+| **buffer-overflow** | Out-of-bounds array writes, risky memcpy/memmove, loop index exceeding array size | Builds map of array sizes from `array_declarator`; checks `assignment_expression` subscripts and `for_statement` loop bounds; validates memcpy length vs dest size | Prevents memory corruption, RCE (CWE-119) |
+| **memory-management** | Memory leaks (malloc without free), double free | Per-function: collects allocations (malloc/calloc/realloc + wrapper functions) and frees; flags unfreed vars and duplicate free() calls | Leaks exhaust memory; double free is undefined behavior (CWE-415, CWE-404) |
+| **use-after-free** | Use of pointer after free() in same function | Builds timeline of free() calls and identifier uses; flags uses that occur after a free of same var; skips safe `p = NULL` after free | Prevents use-after-free exploits (CWE-416) |
+| **hardcoded-secrets** | Passwords, API keys, JWTs, PEM blocks in string literals | Scans `string_literal` nodes; regex for JWT/AWS/GCP patterns, PEM blocks, key=value; entropy check for token-like strings; checks var names (password, token, etc.) | Secrets in source get committed → credential theft (CWE-798) |
+| **integer-overflow** | Arithmetic (+, -, *, /, %, <<, >>) without bounds checks | Finds `binary_expression` with arithmetic ops; checks if preceded by if with relational op or INT_MAX/SIZE_MAX; skips sizeof-based expr | Overflow can corrupt buffers or bypass checks (CWE-190) |
+| **null-checks** | Dereference of malloc pointer without NULL guard | Tracks vars assigned from malloc/calloc/realloc; finds *p, p->field, p[i]; checks if inside if(ptr!=NULL) or after if(!ptr)return | Prevents NULL dereference crashes (CWE-476) |
+| **format-string** | Non-literal format strings, %n, unbounded scanf %s | Finds printf/scanf-family calls; checks format arg: non-literal → flag; literal with %n or unbounded %s/%[...] → flag | Prevents format-string attacks (CWE-134) |
 
 **Speaker notes**
 - Each rule walks the AST and emits findings. Maps to real CWEs (e.g., CWE-119, CWE-416, CWE-134).
