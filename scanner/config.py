@@ -16,6 +16,9 @@ from scanner.rules.base import Rule
 from scanner.rules.buffer_overflow import BufferOverflowRule
 from scanner.rules.format_string import FormatStringRule
 from scanner.rules.hardcoded_secrets import HardcodedSecretsRule
+from scanner.rules.integer_overflow import IntegerOverflowRule
+from scanner.rules.memory_management import MemoryManagementRule
+from scanner.rules.null_checks import NullChecksRule
 from scanner.rules.unsafe_functions import UnsafeFunctionsRule
 from scanner.rules.use_after_free import UseAfterFreeRule
 
@@ -45,6 +48,9 @@ def get_default_config() -> Config:
         BufferOverflowRule(),
         FormatStringRule(),
         HardcodedSecretsRule(),
+        IntegerOverflowRule(),
+        MemoryManagementRule(),
+        NullChecksRule(),
     ]
     return Config(rules=rules)
 
