@@ -30,11 +30,11 @@
 
 **Slide content**
 - **Pipeline**
-  1. **CLI** – file or directory input
-  2. **Traversal** – find `.c` files
-  3. **Parser** – Tree-sitter C → AST
-  4. **Rules Engine** – run vulnerability rules over AST
-  5. **Reporting** – findings by file, severity, snippets
+  1. **CLI** – accepts path to a single `.c` file or a directory; for directories, recursively discovers all `.c` files under it
+  2. **Traversal** – walks the directory tree, collects `.c` files, skips common non-source dirs (build/, tests/, vendor/, .git/, etc.)
+  3. **Parser** – Tree-sitter C builds an AST for each file (no compilation or execution)
+  4. **Rules Engine** – runs each vulnerability rule over the AST; rules emit findings
+  5. **Reporting** – groups findings by file, color-codes by severity, shows code snippets and summary
 - **Stack**: Python, Tree-sitter, Typer (CLI), Rich (output)
 
 **Speaker notes**
