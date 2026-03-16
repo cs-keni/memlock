@@ -31,7 +31,7 @@ int main(void) {
     assert len(findings) == 0
 
 
-@pytest.mark.xfail(reason="Rule not yet implemented - remove when hardcoded_secrets is done")
+#@pytest.mark.xfail(reason="Rule not yet implemented - remove when hardcoded_secrets is done")
 def test_api_key_detected():
     """Hardcoded API key should be flagged."""
     source = b"""
@@ -44,7 +44,7 @@ int main(void) { return 0; }
     assert "secret" in findings[0].message.lower() or "api" in findings[0].message.lower() or "key" in findings[0].message.lower()
 
 
-@pytest.mark.xfail(reason="Rule not yet implemented - remove when hardcoded_secrets is done")
+#@pytest.mark.xfail(reason="Rule not yet implemented - remove when hardcoded_secrets is done")
 def test_password_detected():
     """Hardcoded password should be flagged."""
     source = b"""
