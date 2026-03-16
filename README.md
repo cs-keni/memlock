@@ -62,16 +62,18 @@ pip install -r requirements.txt
 
 ## Usage
 
+Run the scanner from the project root (so `scanner` is on the module path):
+
 ```bash
-# Analyze a directory
-cscan analyze ./project
+# Analyze a file or directory
+python -m scanner.main ./project
 
-# Filter by severity
-cscan analyze ./project --severity medium
+# Output format options (simple = grep-like, rich = pretty tables)
+python -m scanner.main ./project --format rich
+python -m scanner.main ./project --format simple
 
-# Output format options
-cscan analyze ./project --format rich
-cscan analyze ./project --format json
+# Show remediation hints
+python -m scanner.main ./project --verbose
 ```
 
 ## Branch Strategy
