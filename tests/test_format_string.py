@@ -32,7 +32,7 @@ int main(void) {
     assert len(findings) == 0
 
 
-@pytest.mark.xfail(reason="Rule not yet implemented - remove when format_string is done")
+#@pytest.mark.xfail(reason="Rule not yet implemented - remove when format_string is done")
 def test_printf_user_input_detected():
     """printf(user_input) - user-controlled format - should be flagged."""
     source = b"""

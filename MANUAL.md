@@ -53,7 +53,7 @@ MemLock is currently exposed as a Typer CLI app in `scanner/main.py`.
 You can run it directly with Python:
 
 ```bash
-python -m scanner.main analyze path/to/target
+python -m scanner.main path/to/target
 ```
 
 Where:
@@ -66,19 +66,19 @@ Where:
 Analyze a single file:
 
 ```bash
-python -m scanner.main analyze tests/vulnerable/easy_gets_unsafe.c
+python -m scanner.main tests/vulnerable/easy_gets_unsafe.c
 ```
 
 Analyze an entire directory of C files:
 
 ```bash
-python -m scanner.main analyze ./tests/vulnerable
+python -m scanner.main ./tests/vulnerable
 ```
 
 Scan both safe and vulnerable examples (great for demos):
 
 ```bash
-python -m scanner.main analyze ./tests
+python -m scanner.main ./tests
 ```
 
 ### 2.2. Output formats
@@ -92,13 +92,13 @@ Examples:
 
 ```bash
 # Rich, colorized output (default)
-python -m scanner.main analyze ./tests
+python -m scanner.main ./tests
 
 # Explicit rich format
-python -m scanner.main analyze ./tests --format rich
+python -m scanner.main ./tests --format rich
 
 # Simple, grep-style findings per line
-python -m scanner.main analyze ./tests --format simple
+python -m scanner.main ./tests --format simple
 ```
 
 ### 2.3. Verbose remediation hints
@@ -106,7 +106,7 @@ python -m scanner.main analyze ./tests --format simple
 Use the `--verbose` (`-v`) flag to show remediation hints for certain rules (e.g., unsafe functions, use-after-free):
 
 ```bash
-python -m scanner.main analyze ./tests/vulnerable --verbose
+python -m scanner.main ./tests/vulnerable --verbose
 ```
 
 Verbose mode:
@@ -210,14 +210,14 @@ These flows are useful for a class presentation or quick sanity check.
 
 1. Run MemLock on the **vulnerable** directory:
    ```bash
-   python -m scanner.main analyze ./tests/vulnerable --format rich --verbose
+   python -m scanner.main ./tests/vulnerable --format rich --verbose
    ```
 2. Point out:
    - The high-level summary: many files marked `UNSAFE`.
    - One or two concrete examples (e.g., `easy_gets_unsafe.c` or `buffer_overflow_unsafe.c`).
 3. Then run MemLock on the **safe** directory:
    ```bash
-   python -m scanner.main analyze ./tests/safe --format rich
+   python -m scanner.main ./tests/safe --format rich
    ```
 4. Show that most or all files are `OK`, demonstrating that the rules are not trivially noisy.
 
